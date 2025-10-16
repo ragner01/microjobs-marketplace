@@ -1,5 +1,6 @@
 package com.microjobs.escrow.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.microjobs.shared.domain.AggregateRoot;
 import com.microjobs.shared.domain.Money;
 import javax.persistence.*;
@@ -19,6 +20,7 @@ public class LedgerEntry extends AggregateRoot {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "escrow_account_id", nullable = false)
+    @JsonIgnore
     private EscrowAccount escrowAccount;
     
     @Enumerated(EnumType.STRING)
@@ -38,11 +40,12 @@ public class LedgerEntry extends AggregateRoot {
     @Column(name = "transaction_id", nullable = false)
     private UUID transactionId;
     
-    @Column(name = "posted_at", nullable = false)
+    @Column(name = "entry_date", nullable = false)
     private LocalDateTime postedAt;
     
-    @Column(name = "reference_number")
-    private String referenceNumber;
+    // Note: reference_number column doesn't exist in database
+    // @Column(name = "reference_number")
+    // private String referenceNumber;
     
     public LedgerEntry(EscrowAccount escrowAccount, LedgerEntryType entryType, Money amount, 
                       String description, UUID transactionId) {
@@ -53,14 +56,14 @@ public class LedgerEntry extends AggregateRoot {
         this.description = description;
         this.transactionId = transactionId;
         this.postedAt = LocalDateTime.now();
-        this.referenceNumber = generateReferenceNumber();
+        // this.referenceNumber = generateReferenceNumber();
     }
     
-    private String generateReferenceNumber() {
-        return String.format("LE-%s-%d", 
-            postedAt.toLocalDate().toString().replace("-", ""),
-            System.currentTimeMillis() % 10000);
-    }
+    // private String generateReferenceNumber() {
+    //     return String.format("LE-%s-%d", 
+    //         postedAt.toLocalDate().toString().replace("-", ""),
+    //         System.currentTimeMillis() % 10000);
+    // }
     
     @Override
     public void validate() {

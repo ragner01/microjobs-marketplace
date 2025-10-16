@@ -6,31 +6,32 @@ spring:
     name: search-service
   datasource:
     url: jdbc:postgresql://localhost:5432/microjobs
-    username: microjobs
-    password: microjobs
+    username: ${DB_USERNAME:microjobs}
+    password: ${DB_PASSWORD:microjobs123}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: none
     show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-  kafka:
-    bootstrap-servers: localhost:9092
-    consumer:
-      group-id: search-service-group
-      auto-offset-reset: earliest
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+        default_schema: search
+  flyway:
+    enabled: false
+  data:
+    elasticsearch:
+      repositories:
+        enabled: true
+      cluster-nodes: ${ELASTICSEARCH_HOST:localhost:9200}
+      cluster-name: ${ELASTICSEARCH_CLUSTER_NAME:microjobs-cluster}
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health
   endpoint:
     health:
       show-details: always
@@ -38,3 +39,18 @@ management:
 logging:
   level:
     com.microjobs.search: DEBUG
+    org.springframework.web: DEBUG
+    org.elasticsearch: WARN
+
+jwt:
+  secret: ${JWT_SECRET:mySecretKey123456789012345678901234567890}
+  expiration: 86400000 # 24 hours
+
+elasticsearch:
+  index:
+    jobs: microjobs-jobs
+    users: microjobs-users
+    analytics: microjobs-analytics
+  settings:
+    number_of_shards: 1
+    number_of_replicas: 0

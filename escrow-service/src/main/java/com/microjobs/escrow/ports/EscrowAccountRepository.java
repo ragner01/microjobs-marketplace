@@ -12,7 +12,7 @@ import java.util.UUID;
 @Repository
 public interface EscrowAccountRepository extends JpaRepository<EscrowAccount, UUID> {
     
-    List<EscrowAccount> findByTenantId(TenantId tenantId);
+    List<EscrowAccount> findByTenantId(String tenantId);
     
     List<EscrowAccount> findByAccountHolderId(String accountHolderId);
     

@@ -10,9 +10,6 @@ import java.util.List;
 @Data
 public class CreateJobRequest {
     
-    @NotBlank(message = "Tenant ID is required")
-    private String tenantId;
-    
     @NotBlank(message = "Title is required")
     @Size(min = 5, max = 100, message = "Title must be between 5 and 100 characters")
     private String title;
@@ -36,7 +33,4 @@ public class CreateJobRequest {
     private Double latitude;
     private Double longitude;
     private Integer maxDistanceKm;
-    
-    @NotBlank(message = "Client ID is required")
-    private String clientId;
 }

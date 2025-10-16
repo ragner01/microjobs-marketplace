@@ -1,5 +1,6 @@
 package com.microjobs.jobs.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.microjobs.shared.domain.AggregateRoot;
 import com.microjobs.shared.domain.Money;
 import javax.persistence.*;
@@ -19,6 +20,7 @@ public class JobBid extends AggregateRoot {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "job_id", nullable = false)
+    @JsonIgnore
     private Job job;
     
     @Column(name = "worker_id", nullable = false)

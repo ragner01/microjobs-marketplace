@@ -8,6 +8,7 @@ import com.microjobs.jobs.ports.JobRepository;
 import com.microjobs.jobs.ports.JobBidRepository;
 import com.microjobs.shared.domain.Money;
 import com.microjobs.shared.domain.TenantId;
+import com.microjobs.shared.infrastructure.security.SecurityContextHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -28,13 +29,19 @@ public class JobController {
 
     private final JobRepository jobRepository;
     private final JobBidRepository jobBidRepository;
+    private final SecurityContextHelper securityContextHelper;
 
     @PostMapping
     public ResponseEntity<Job> createJob(@Valid @RequestBody CreateJobRequest request) {
-        log.info("Creating job: {}", request.getTitle());
+        log.info("Creating job: {} for user: {}", request.getTitle(), securityContextHelper.getCurrentUsername());
+        
+        // Ensure user is authenticated and is a CLIENT
+        if (!securityContextHelper.isAuthenticated() || !securityContextHelper.isClient()) {
+            return ResponseEntity.status(403).build();
+        }
         
         Job job = new Job(
-            TenantId.of(request.getTenantId()),
+            TenantId.of(securityContextHelper.getCurrentTenantId()),
             request.getTitle(),
             request.getDescription(),
             new Money(request.getBudgetAmount(), request.getBudgetCurrency()),
@@ -44,7 +51,7 @@ public class JobController {
             request.getLatitude(),
             request.getLongitude(),
             request.getMaxDistanceKm() != null ? request.getMaxDistanceKm().doubleValue() : null,
-            UUID.randomUUID() // Generate UUID for client ID
+            securityContextHelper.getCurrentUserId()
         );
         
         Job savedJob = jobRepository.save(job);
@@ -80,14 +87,19 @@ public class JobController {
 
     @PostMapping("/{jobId}/bids")
     public ResponseEntity<JobBid> submitBid(@PathVariable UUID jobId, @Valid @RequestBody SubmitBidRequest request) {
-        log.info("Submitting bid for job: {}", jobId);
+        log.info("Submitting bid for job: {} by user: {}", jobId, securityContextHelper.getCurrentUsername());
+        
+        // Ensure user is authenticated and is a WORKER
+        if (!securityContextHelper.isAuthenticated() || !securityContextHelper.isWorker()) {
+            return ResponseEntity.status(403).build();
+        }
         
         Job job = jobRepository.findById(jobId)
             .orElseThrow(() -> new IllegalArgumentException("Job not found"));
         
         JobBid bid = new JobBid(
             job,
-            UUID.fromString(request.getWorkerId()),
+            securityContextHelper.getCurrentUserId(),
             new Money(request.getBidAmount(), request.getBidCurrency()),
             request.getProposal(),
             request.getEstimatedCompletionDays()

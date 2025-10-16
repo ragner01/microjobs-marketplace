@@ -36,7 +36,7 @@ public class EscrowController {
             request.getTenantId(),
             UUID.fromString(request.getAccountHolderId()),
             EscrowAccount.AccountType.valueOf(request.getAccountType().name()),
-            new Money(java.math.BigDecimal.ZERO, "USD")
+            new Money(java.math.BigDecimal.ZERO, java.util.Currency.getInstance("USD"))
         );
         
         EscrowAccount savedAccount = escrowAccountRepository.save(account);
@@ -57,7 +57,7 @@ public class EscrowController {
         
         List<EscrowAccount> accounts;
         if (tenantId != null) {
-            accounts = escrowAccountRepository.findByTenantId(TenantId.of(tenantId));
+            accounts = escrowAccountRepository.findByTenantId(tenantId);
         } else if (accountHolderId != null) {
             accounts = escrowAccountRepository.findByAccountHolderId(accountHolderId);
         } else {
@@ -167,6 +167,40 @@ public class EscrowController {
             "deposit", "POST /api/escrow/accounts/{id}/deposit"
         ));
         response.put("documentation", "See README.md for API documentation");
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/debug")
+    public ResponseEntity<Map<String, Object>> debugEndpoint(@RequestBody Map<String, Object> request) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            // Test Money creation
+            Money money = new Money(java.math.BigDecimal.ZERO, java.util.Currency.getInstance("USD"));
+            response.put("money_created", money.toString());
+            
+            // Test AccountType
+            EscrowAccount.AccountType accountType = EscrowAccount.AccountType.valueOf("CLIENT");
+            response.put("account_type", accountType.name());
+            
+            // Test UUID
+            UUID accountHolderId = UUID.fromString("client-001");
+            response.put("uuid_created", accountHolderId.toString());
+            
+            // Test EscrowAccount creation
+            EscrowAccount account = new EscrowAccount(
+                "tenant-001",
+                accountHolderId,
+                accountType,
+                money
+            );
+            response.put("account_created", "SUCCESS");
+            response.put("account_id", account.getId());
+            
+        } catch (Exception e) {
+            response.put("error", e.getMessage());
+            response.put("error_class", e.getClass().getSimpleName());
+        }
+        
         return ResponseEntity.ok(response);
     }
 
