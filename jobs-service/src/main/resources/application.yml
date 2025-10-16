@@ -6,8 +6,8 @@ spring:
     name: jobs-service
   datasource:
     url: jdbc:postgresql://localhost:5432/microjobs
-    username: microjobs
-    password: microjobs123
+    username: ${DB_USERNAME:microjobs}
+    password: ${DB_PASSWORD:microjobs123}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
