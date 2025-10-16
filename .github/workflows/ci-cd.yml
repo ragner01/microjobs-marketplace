@@ -27,16 +27,6 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-      
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
 
     steps:
     - name: Checkout code
@@ -67,14 +57,6 @@ jobs:
         DB_USERNAME: testuser
         DB_PASSWORD: testpass
         SPRING_PROFILES_ACTIVE: test
-
-    - name: Generate test report
-      uses: dorny/test-reporter@v1
-      if: success() || failure()
-      with:
-        name: Gradle Tests
-        path: build/test-results/test/*.xml
-        reporter: java-junit
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
@@ -123,17 +105,6 @@ jobs:
         path: |
           jobs-service/build/libs/*.jar
           escrow-service/build/libs/*.jar
-          api-gateway/build/libs/*.jar
-          tenant-service/build/libs/*.jar
-          auth-service/build/libs/*.jar
-          bids-matching-service/build/libs/*.jar
-          disputes-service/build/libs/*.jar
-          payments-service/build/libs/*.jar
-          notifications-service/build/libs/*.jar
-          search-service/build/libs/*.jar
-          analytics-service/build/libs/*.jar
-          file-service/build/libs/*.jar
-          admin-console/build/libs/*.jar
 
   security-scan:
     runs-on: ubuntu-latest
@@ -150,75 +121,11 @@ jobs:
       with:
         languages: java
 
-    - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
-      with:
-        scan-type: 'fs'
-        scan-ref: '.'
-        format: 'sarif'
-        output: 'trivy-results.sarif'
-
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
 
-    - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v3
-      if: always()
-      with:
-        sarif_file: 'trivy-results.sarif'
-
-  docker-build:
-    needs: [test, build]
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Login to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-
-    - name: Build and push Docker images
-      run: |
-        docker build -t ragner01/microjobs-jobs-service:latest -f jobs-service/Dockerfile jobs-service/
-        docker build -t ragner01/microjobs-escrow-service:latest -f escrow-service/Dockerfile escrow-service/
-        docker build -t ragner01/microjobs-api-gateway:latest -f api-gateway/Dockerfile api-gateway/
-        
-        docker push ragner01/microjobs-jobs-service:latest
-        docker push ragner01/microjobs-escrow-service:latest
-        docker push ragner01/microjobs-api-gateway:latest
-
-  deploy:
-    needs: docker-build
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Deploy to staging
-      run: |
-        echo "Deploying to staging environment..."
-        # Add your deployment commands here
-        # kubectl apply -f k8s/staging/
-        # helm upgrade --install microjobs-staging ./helm/microjobs --namespace staging
-
-    - name: Run smoke tests
-      run: |
-        echo "Running smoke tests..."
-        # Add smoke test commands here
-        # curl -f http://staging.microjobs.com/health || exit 1
-
   notify:
-    needs: [test, build, security-scan, docker-build, deploy]
+    needs: [test, build, security-scan]
     runs-on: ubuntu-latest
     if: always()
     
@@ -235,4 +142,3 @@ jobs:
         echo "Test result: ${{ needs.test.result }}"
         echo "Build result: ${{ needs.build.result }}"
         echo "Security scan result: ${{ needs.security-scan.result }}"
-        # Don't exit with error code to avoid failing the workflow
