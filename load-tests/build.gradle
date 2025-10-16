@@ -1,0 +1,23 @@
+plugins {
+    id 'scala'
+    id 'io.gatling.gradle' version '3.9.5'
+}
+
+dependencies {
+    gatling 'org.scala-lang:scala-library:2.13.12'
+    gatling 'io.gatling:gatling-app:3.9.5'
+    gatling 'io.gatling:gatling-recorder:3.9.5'
+    gatling 'io.gatling.highcharts:gatling-charts-highcharts:3.9.5'
+}
+
+gatling {
+    simulations = ['com.microjobs.loadtests.MicroJobsLoadTest']
+}
+
+tasks.withType(ScalaCompile) {
+    scalaCompileOptions.additionalParameters = [
+        '-feature',
+        '-language:implicitConversions',
+        '-language:postfixOps'
+    ]
+}

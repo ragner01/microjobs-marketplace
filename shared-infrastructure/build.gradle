@@ -1,0 +1,47 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    // Shared modules
+    api project(':shared-kernel')
+    
+    // Spring Boot Starters
+    api 'org.springframework.boot:spring-boot-starter-data-jpa:2.7.18'
+    api 'org.springframework.boot:spring-boot-starter-validation:2.7.18'
+    api 'org.springframework.boot:spring-boot-starter-actuator:2.7.18'
+    api 'org.springframework.boot:spring-boot-starter-security:2.7.18'
+    api 'org.springframework.boot:spring-boot-starter-oauth2-resource-server:2.7.18'
+    api 'org.springframework.boot:spring-boot-starter-oauth2-client:2.7.18'
+    
+    // Kafka
+    api 'org.springframework.kafka:spring-kafka:2.9.13'
+    api 'org.springframework.cloud:spring-cloud-stream:3.2.8'
+    api 'org.springframework.cloud:spring-cloud-stream-binder-kafka:3.2.8'
+    
+    // Database
+    api 'org.postgresql:postgresql:42.6.0'
+    api 'org.flywaydb:flyway-core:8.5.13'
+    
+    // Observability
+    api 'io.micrometer:micrometer-registry-prometheus:1.10.5'
+    api 'io.micrometer:micrometer-tracing-bridge-brave:1.0.4'
+    api 'io.zipkin.brave:brave:5.15.1'
+    api 'net.logstash.logback:logstash-logback-encoder:7.4'
+    
+    // Utilities
+    api 'org.mapstruct:mapstruct:1.5.5.Final'
+    api 'org.apache.commons:commons-lang3:3.12.0'
+    api 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.2'
+    
+    // Testing
+    testImplementation 'org.springframework.boot:spring-boot-starter-test:2.7.18'
+    testImplementation 'org.springframework.kafka:spring-kafka-test:2.9.13'
+    testImplementation 'org.testcontainers:junit-jupiter:1.19.3'
+    testImplementation 'org.testcontainers:postgresql:1.19.3'
+    testImplementation 'org.testcontainers:kafka:1.19.3'
+    
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+}

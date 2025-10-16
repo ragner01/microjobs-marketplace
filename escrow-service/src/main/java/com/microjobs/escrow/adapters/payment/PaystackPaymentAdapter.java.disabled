@@ -1,0 +1,132 @@
+package com.microjobs.escrow.adapters.payment;
+
+import com.microjobs.escrow.domain.EscrowAccount;
+import com.microjobs.escrow.domain.EscrowTransaction;
+import com.microjobs.escrow.ports.EscrowAccountRepository;
+import com.microjobs.shared.domain.Money;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
+import java.util.UUID;
+
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class PaystackPaymentAdapter implements PaymentProvider {
+    
+    private final EscrowAccountRepository accountRepository;
+    private final PaystackClient paystackClient;
+    
+    @Override
+    public PaymentResult processPayment(PaymentRequest request) {
+        log.info("Processing payment via Paystack for transaction: {}", request.getTransactionId());
+        
+        try {
+            // Check for idempotency
+            if (isDuplicateRequest(request.getTransactionId())) {
+                log.warn("Duplicate payment request detected for transaction: {}", request.getTransactionId());
+                return PaymentResult.duplicate(request.getTransactionId());
+            }
+            
+            // Create Paystack payment request
+            PaystackPaymentRequest paystackRequest = PaystackPaymentRequest.builder()
+                    .email(request.getEmail())
+                    .amount(convertToKobo(request.getAmount()))
+                    .reference(request.getTransactionId().toString())
+                    .callbackUrl(request.getCallbackUrl())
+                    .build();
+            
+            // Call Paystack API
+            PaystackResponse response = paystackClient.initializePayment(paystackRequest);
+            
+            if (response.isSuccess()) {
+                // Update escrow account
+                updateEscrowAccount(request.getTransactionId(), request.getAmount(), "PAYSTACK_PAYMENT");
+                
+                return PaymentResult.success(request.getTransactionId(), response.getReference());
+            } else {
+                return PaymentResult.failure(request.getTransactionId(), response.getMessage());
+            }
+            
+        } catch (Exception e) {
+            log.error("Payment processing failed for transaction: {}", request.getTransactionId(), e);
+            return PaymentResult.failure(request.getTransactionId(), e.getMessage());
+        }
+    }
+    
+    @Override
+    public PaymentResult verifyPayment(String reference) {
+        log.info("Verifying payment with reference: {}", reference);
+        
+        try {
+            PaystackVerificationResponse response = paystackClient.verifyPayment(reference);
+            
+            if (response.isSuccess() && response.getStatus().equals("success")) {
+                UUID transactionId = UUID.fromString(response.getReference());
+                Money amount = convertFromKobo(response.getAmount());
+                
+                return PaymentResult.success(transactionId, reference);
+            } else {
+                return PaymentResult.failure(UUID.fromString(response.getReference()), 
+                    "Payment verification failed: " + response.getGatewayResponse());
+            }
+            
+        } catch (Exception e) {
+            log.error("Payment verification failed for reference: {}", reference, e);
+            return PaymentResult.failure(null, e.getMessage());
+        }
+    }
+    
+    @Override
+    public PaymentResult refundPayment(RefundRequest request) {
+        log.info("Processing refund via Paystack for transaction: {}", request.getTransactionId());
+        
+        try {
+            PaystackRefundRequest refundRequest = PaystackRefundRequest.builder()
+                    .transaction(request.getOriginalTransactionId())
+                    .amount(convertToKobo(request.getAmount()))
+                    .reason(request.getReason())
+                    .build();
+            
+            PaystackRefundResponse response = paystackClient.refund(refundRequest);
+            
+            if (response.isSuccess()) {
+                return PaymentResult.success(request.getTransactionId(), response.getReference());
+            } else {
+                return PaymentResult.failure(request.getTransactionId(), response.getMessage());
+            }
+            
+        } catch (Exception e) {
+            log.error("Refund processing failed for transaction: {}", request.getTransactionId(), e);
+            return PaymentResult.failure(request.getTransactionId(), e.getMessage());
+        }
+    }
+    
+    private boolean isDuplicateRequest(UUID transactionId) {
+        // Check if payment already processed for this transaction
+        return accountRepository.findByAccountHolderIdAndAccountType(
+            transactionId, EscrowAccount.AccountType.ESCROW_HOLD)
+            .isPresent();
+    }
+    
+    private void updateEscrowAccount(UUID transactionId, Money amount, String description) {
+        EscrowAccount escrowAccount = accountRepository.findByAccountHolderIdAndAccountType(
+            transactionId, EscrowAccount.AccountType.ESCROW_HOLD)
+            .orElseThrow(() -> new IllegalArgumentException("Escrow account not found"));
+        
+        escrowAccount.deposit(amount, description, transactionId);
+        accountRepository.save(escrowAccount);
+    }
+    
+    private int convertToKobo(Money amount) {
+        // Convert to kobo (smallest currency unit for Naira)
+        return amount.getAmount().multiply(new BigDecimal("100")).intValue();
+    }
+    
+    private Money convertFromKobo(int koboAmount) {
+        BigDecimal amount = new BigDecimal(koboAmount).divide(new BigDecimal("100"));
+        return new Money(amount, "NGN");
+    }
+}

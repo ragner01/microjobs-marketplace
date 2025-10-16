@@ -1,0 +1,251 @@
+{
+  "projectName": "MicroJobs Marketplace",
+  "version": "1.0.0",
+  "description": "Production-ready multi-tenant micro-jobs marketplace with DDD and event-driven architecture",
+  "architecture": {
+    "type": "Microservices",
+    "pattern": "Domain-Driven Design + Hexagonal Architecture",
+    "eventSourcing": true,
+    "multiTenant": true
+  },
+  "services": {
+    "api-gateway": {
+      "port": 8080,
+      "description": "Spring Cloud Gateway - API Gateway",
+      "endpoints": {
+        "health": "/actuator/health",
+        "routes": {
+          "jobs": "/api/jobs/**",
+          "escrow": "/api/escrow/**",
+          "auth": "/api/auth/**",
+          "bids": "/api/bids/**",
+          "disputes": "/api/disputes/**",
+          "payments": "/api/payments/**",
+          "notifications": "/api/notifications/**",
+          "search": "/api/search/**"
+        }
+      }
+    },
+    "jobs-service": {
+      "port": 8083,
+      "description": "Job Management Service",
+      "endpoints": {
+        "health": "/api/jobs/health",
+        "createJob": {
+          "method": "POST",
+          "path": "/api/jobs",
+          "body": {
+            "tenantId": "string",
+            "title": "string",
+            "description": "string",
+            "budgetAmount": "number",
+            "budgetCurrency": "string",
+            "deadline": "datetime",
+            "requiredSkills": ["string"],
+            "location": "string",
+            "latitude": "number",
+            "longitude": "number",
+            "maxDistanceKm": "number",
+            "clientId": "string"
+          }
+        },
+        "getJob": {
+          "method": "GET",
+          "path": "/api/jobs/{id}"
+        },
+        "listJobs": {
+          "method": "GET",
+          "path": "/api/jobs",
+          "queryParams": ["tenantId", "status", "clientId"]
+        },
+        "submitBid": {
+          "method": "POST",
+          "path": "/api/jobs/{jobId}/bids",
+          "body": {
+            "workerId": "string",
+            "bidAmount": "number",
+            "bidCurrency": "string",
+            "proposal": "string",
+            "estimatedCompletionDays": "number"
+          }
+        },
+        "getJobBids": {
+          "method": "GET",
+          "path": "/api/jobs/{jobId}/bids"
+        },
+        "assignJob": {
+          "method": "PUT",
+          "path": "/api/jobs/{jobId}/assign/{bidId}"
+        },
+        "completeJob": {
+          "method": "PUT",
+          "path": "/api/jobs/{jobId}/complete"
+        }
+      }
+    },
+    "escrow-service": {
+      "port": 8084,
+      "description": "Escrow and Financial Management Service",
+      "endpoints": {
+        "health": "/api/escrow/health",
+        "createAccount": {
+          "method": "POST",
+          "path": "/api/escrow/accounts",
+          "body": {
+            "tenantId": "string",
+            "accountHolderId": "string",
+            "accountType": "CLIENT|WORKER|PLATFORM|ESCROW_HOLD"
+          }
+        },
+        "getAccount": {
+          "method": "GET",
+          "path": "/api/escrow/accounts/{id}"
+        },
+        "listAccounts": {
+          "method": "GET",
+          "path": "/api/escrow/accounts",
+          "queryParams": ["tenantId", "accountHolderId"]
+        },
+        "deposit": {
+          "method": "POST",
+          "path": "/api/escrow/accounts/{accountId}/deposit",
+          "body": {
+            "amount": "number",
+            "currency": "string",
+            "description": "string",
+            "transactionId": "uuid"
+          }
+        },
+        "withdraw": {
+          "method": "POST",
+          "path": "/api/escrow/accounts/{accountId}/withdraw",
+          "body": {
+            "amount": "number",
+            "currency": "string",
+            "description": "string",
+            "transactionId": "uuid"
+          }
+        },
+        "createTransaction": {
+          "method": "POST",
+          "path": "/api/escrow/transactions",
+          "body": {
+            "tenantId": "string",
+            "jobId": "uuid",
+            "clientId": "string",
+            "workerId": "string",
+            "amount": "number",
+            "currency": "string",
+            "type": "ESCROW_DEPOSIT|ESCROW_RELEASE|ESCROW_REFUND|PLATFORM_FEE|PAYMENT_PROCESSING",
+            "description": "string"
+          }
+        },
+        "getTransaction": {
+          "method": "GET",
+          "path": "/api/escrow/transactions/{id}"
+        },
+        "listTransactions": {
+          "method": "GET",
+          "path": "/api/escrow/transactions",
+          "queryParams": ["tenantId", "clientId", "workerId"]
+        },
+        "completeTransaction": {
+          "method": "PUT",
+          "path": "/api/escrow/transactions/{id}/complete"
+        }
+      }
+    },
+    "demo-service": {
+      "port": 8086,
+      "description": "Demo and Monitoring Service",
+      "endpoints": {
+        "dashboard": "/dashboard",
+        "health": "/health",
+        "status": "/status",
+        "services": "/services"
+      }
+    }
+  },
+  "infrastructure": {
+    "database": {
+      "type": "PostgreSQL",
+      "host": "localhost",
+      "port": 5432,
+      "database": "microjobs",
+      "schemas": ["shared", "jobs", "escrow"]
+    },
+    "messageBroker": {
+      "type": "Kafka",
+      "host": "localhost",
+      "port": 9092
+    },
+    "cache": {
+      "type": "Redis",
+      "host": "localhost",
+      "port": 6379
+    },
+    "search": {
+      "type": "Elasticsearch",
+      "host": "localhost",
+      "port": 9200
+    },
+    "authentication": {
+      "type": "Keycloak",
+      "host": "localhost",
+      "port": 8085,
+      "adminUrl": "http://localhost:8085/admin"
+    },
+    "objectStorage": {
+      "type": "MinIO",
+      "host": "localhost",
+      "port": 9000,
+      "console": "http://localhost:9001"
+    }
+  },
+  "testScenarios": {
+    "jobLifecycle": {
+      "description": "Complete job lifecycle from creation to completion",
+      "steps": [
+        "Create a job",
+        "Submit bids",
+        "Assign job to worker",
+        "Complete job",
+        "Process escrow transaction"
+      ]
+    },
+    "escrowFlow": {
+      "description": "Escrow account and transaction management",
+      "steps": [
+        "Create escrow accounts",
+        "Deposit funds",
+        "Create escrow transaction",
+        "Complete transaction",
+        "Withdraw funds"
+      ]
+    },
+    "multiTenant": {
+      "description": "Multi-tenant operations",
+      "steps": [
+        "Create jobs for different tenants",
+        "Verify tenant isolation",
+        "Test cross-tenant operations"
+      ]
+    }
+  },
+  "sampleData": {
+    "tenants": ["tenant-1", "tenant-2", "tenant-3"],
+    "clients": ["client-1", "client-2", "client-3"],
+    "workers": ["worker-1", "worker-2", "worker-3"],
+    "jobTitles": [
+      "Website Development",
+      "Mobile App Design",
+      "Data Analysis",
+      "Content Writing",
+      "Graphic Design"
+    ],
+    "skills": [
+      "JavaScript", "React", "Node.js", "Python", "Java",
+      "Spring Boot", "PostgreSQL", "Docker", "Kubernetes"
+    ]
+  }
+}

@@ -1,0 +1,108 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '2.7.18' apply false
+    id 'io.spring.dependency-management' version '1.1.4' apply false
+    id 'com.google.cloud.tools.jib' version '3.4.0'
+    id 'jacoco'
+}
+
+allprojects {
+    group = 'com.microjobs'
+    version = '1.0.0-SNAPSHOT'
+    
+    repositories {
+        mavenCentral()
+        maven { url 'https://repo.spring.io/milestone' }
+    }
+}
+
+subprojects {
+    apply plugin: 'java'
+    
+    // Only apply Spring Boot plugin to specific services
+    if (project.name in ['jobs-service', 'escrow-service', 'api-gateway', 'demo-service', 'standalone-demo', 'tenant-service', 'auth-service', 'bids-matching-service', 'disputes-service', 'payments-service', 'notifications-service', 'search-service']) {
+        apply plugin: 'org.springframework.boot'
+        apply plugin: 'io.spring.dependency-management'
+    }
+    
+    apply plugin: 'com.google.cloud.tools.jib'
+    apply plugin: 'jacoco'
+    
+    java {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+    
+    configurations {
+        compileOnly {
+            extendsFrom annotationProcessor
+        }
+    }
+    
+    dependencies {
+        // Only basic dependencies that all subprojects need
+        implementation 'org.springframework.boot:spring-boot-starter-web:2.7.18'
+        implementation 'org.springframework.boot:spring-boot-starter-validation:2.7.18'
+        
+        // Testing
+        testImplementation 'org.springframework.boot:spring-boot-starter-test:2.7.18'
+        
+        // Development
+        annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:2.7.18'
+        annotationProcessor 'org.projectlombok:lombok:1.18.30'
+        
+        compileOnly 'org.projectlombok:lombok:1.18.30'
+    }
+    
+    // Only apply dependency management to Spring Boot projects
+    if (project.name in ['jobs-service', 'escrow-service', 'api-gateway', 'demo-service', 'standalone-demo', 'tenant-service', 'auth-service', 'bids-matching-service', 'disputes-service', 'payments-service', 'notifications-service', 'search-service']) {
+        dependencyManagement {
+            imports {
+                mavenBom "org.springframework.cloud:spring-cloud-dependencies:2021.0.8"
+                mavenBom "org.testcontainers:testcontainers-bom:1.19.3"
+            }
+        }
+    }
+    
+    test {
+        useJUnitPlatform()
+        finalizedBy jacocoTestReport
+    }
+    
+    jacocoTestReport {
+        dependsOn test
+        reports {
+            xml.required = true
+            html.required = true
+        }
+    }
+    
+    jib {
+        from {
+            image = 'eclipse-temurin:21-jre-alpine'
+        }
+        to {
+            image = "microjobs/${project.name}:${version}"
+        }
+        container {
+            jvmFlags = [
+                '-XX:+UseContainerSupport',
+                '-XX:MaxRAMPercentage=75.0',
+                '-Dspring.profiles.active=prod'
+            ]
+            ports = ['8080']
+            labels = [
+                'maintainer': 'microjobs-team',
+                'version': version
+            ]
+        }
+    }
+}
+
+// Global configuration
+ext {
+    springBootVersion = '3.2.0'
+    springCloudVersion = '2023.0.0'
+    testcontainersVersion = '1.19.3'
+    mapstructVersion = '1.5.5.Final'
+}

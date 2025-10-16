@@ -1,0 +1,60 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: jobs-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/jobs/**
+        - id: escrow-service
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/escrow/**
+        - id: auth-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/auth/**
+        - id: bids-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/bids/**
+        - id: disputes-service
+          uri: http://localhost:8087
+          predicates:
+            - Path=/api/disputes/**
+        - id: payments-service
+          uri: http://localhost:8088
+          predicates:
+            - Path=/api/payments/**
+        - id: notifications-service
+          uri: http://localhost:8089
+          predicates:
+            - Path=/api/notifications/**
+        - id: search-service
+          uri: http://localhost:8090
+          predicates:
+            - Path=/api/search/**
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
