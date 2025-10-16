@@ -81,7 +81,7 @@ make local-infra
 - **Demo Dashboard**: http://localhost:8086/dashboard
 - **Jobs API**: http://localhost:8083/api/jobs
 - **Escrow API**: http://localhost:8084/api/escrow
-- **API Gateway**: http://localhost:8081
+- **API Gateway**: http://localhost:8091
 - **Keycloak Admin**: http://localhost:8085/admin
 
 ## 📊 API Documentation
