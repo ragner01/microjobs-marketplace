@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.UUID;
 
 @RestController
@@ -149,6 +151,23 @@ public class EscrowController {
         EscrowTransaction savedTransaction = escrowTransactionRepository.save(transaction);
         
         return ResponseEntity.ok(savedTransaction);
+    }
+
+    @GetMapping("/")
+    public ResponseEntity<Map<String, Object>> welcome() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("service", "Escrow Service");
+        response.put("version", "1.0.0");
+        response.put("status", "UP");
+        response.put("endpoints", Map.of(
+            "health", "/api/escrow/health",
+            "accounts", "/api/escrow/accounts",
+            "transactions", "/api/escrow/transactions",
+            "createAccount", "POST /api/escrow/accounts",
+            "deposit", "POST /api/escrow/accounts/{id}/deposit"
+        ));
+        response.put("documentation", "See README.md for API documentation");
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/health")

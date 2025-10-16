@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.UUID;
 
 @RestController
@@ -128,6 +130,23 @@ public class JobController {
         Job savedJob = jobRepository.save(job);
         
         return ResponseEntity.ok(savedJob);
+    }
+
+    @GetMapping("/")
+    public ResponseEntity<Map<String, Object>> welcome() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("service", "Jobs Service");
+        response.put("version", "1.0.0");
+        response.put("status", "UP");
+        response.put("endpoints", Map.of(
+            "health", "/api/jobs/health",
+            "jobs", "/api/jobs",
+            "createJob", "POST /api/jobs",
+            "getJob", "GET /api/jobs/{id}",
+            "submitBid", "POST /api/jobs/{jobId}/bids"
+        ));
+        response.put("documentation", "See README.md for API documentation");
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/health")
